@@ -15,11 +15,42 @@ my $tree = parse_workflowy(\@lines);
 
 print Dumper($tree->{Work}->{TREE}->{AntiFraud}->{TREE}->{CRITICAL});
 
-print_tree($tree);
+print_tree($tree->{Work}->{TREE}->{AntiFraud}->{TREE}->{CRITICAL});
+print "-----\n";
+print dump_workflowy($tree->{Work}->{TREE}->{AntiFraud}->{TREE}->{CRITICAL});
+
+sub dump_workflowy {
+	my $tree = shift;
+	my $indent = shift || '';
+
+	my $result = '';
+	if($tree->{INFO}) {
+		$result .= "$indent  " . $tree->{INFO}."\n";
+	};
+
+	return $result unless $tree->{TREE};
+	foreach my $key (keys %{$tree->{TREE}}) {
+		$result .= $indent . "    - $key\n";
+		$result .= dump_workflowy($tree->{TREE}->{$key}, "$indent    ");
+	}
+
+	return $result;
+}
 
 sub print_tree {
 	my $tree = shift;
+	my $indent = shift || "";
 
+	return unless $tree;
+
+	if($tree->{INFO}) {
+		print "$indent  " . $tree->{INFO}."\n";
+	};
+	return unless $tree->{TREE};
+	foreach my $key (keys %{$tree->{TREE}}) {
+		print $indent . "    - $key\n";
+		print_tree($tree->{TREE}->{$key}, "$indent    ");
+	}
 }
 
 sub parse_workflowy {

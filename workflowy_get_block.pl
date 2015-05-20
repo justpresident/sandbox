@@ -19,7 +19,7 @@ my $tree = parse_workflowy(\@lines);
 #print_tree($tree->{Work}->{TREE}->{AntiFraud}->{TREE}->{CRITICAL});
 #print "-----\n";
 #print dump_workflowy($tree->{Work}->{TREE}->{AntiFraud}->{TREE}->{CRITICAL});
-print dump_workflowy($tree, 'html');
+print dump_workflowy($tree, 'wiki');
 #print_tree($tree);
 
 
@@ -30,35 +30,78 @@ sub dump_workflowy {
 
 	my $result = '';
 	if($tree->{INFO}) {
-		$tree->{INFO} =~ s/(\@\S+)/<span class=who>$1<\/span>/g if $format eq 'html';
-		
-		$result .= "<span class=note>" if $format eq 'html';
-		$result .= "$indent  " . $tree->{INFO}."\n";
-		$result .= "</span>" if $format eq 'html';
+		$tree->{INFO} = format_str($tree->{INFO}, $format);
+		$result .= mk_info($tree->{INFO}, $indent, $format);
 	};
 
-	my $elem_prefix = "- ";
-	my $elem_postfix = "";
-	if ($format eq 'html') {
-		$elem_prefix = "<li>";
-		$elem_postfix = "</li>";
-	}
+	my ($elem_prefix, $elem_postfix) = mk_prefixes($format, $indent);
 
 	return $result unless $tree->{TREE};
 	
 	$result .= "$indent<ol>\n" if $format eq 'html';
 	foreach my $key (keys %{$tree->{TREE}}) {
 		my $print_key = $key;
-		$print_key =~ s/(\@\S+)/<span class=who>$1<\/span>/g if $format eq 'html';
-		$result .= $indent . "    $elem_prefix$print_key\n";
+		$print_key = format_str($print_key, $format, "item");
+		$result .= "$elem_prefix$print_key\n";
 		$result .= "<br>" if $format eq 'html';
 		$result .= dump_workflowy($tree->{TREE}->{$key}, $format, "$indent    ");
-		$result .= "$indent    $elem_postfix\n";
+		$result .= "$elem_postfix\n";
 	}
 	$result .= "$indent</ol>\n" if $format eq 'html';
 
 
 	return $result;
+}
+
+sub mk_prefixes {
+	my $format = shift;
+	my $indent = shift;
+	
+	my $elem_prefix  = "$indent    - ";
+	my $elem_postfix = "$indent    ";
+	if ($format eq 'html') {
+		$elem_prefix = "<li>";
+		$elem_postfix = "</li>";
+	} elsif ($format eq 'wiki') {
+		$elem_prefix = "$indent";
+		$elem_postfix = "";
+		
+	}
+
+	return ($elem_prefix, $elem_postfix);
+}
+
+sub mk_info {
+	my $str = shift;
+	my $indent = shift;
+	my $format = shift;
+
+	my $result = "$indent  " . $str . "\n";
+	if ($format eq 'html') {
+		$result = "<span class=note>$indent $result\n</span>";
+	} elsif ($format eq 'wiki') {
+		$result = "<[$str\n]>";
+	}
+	return $result;
+}
+
+sub format_str {
+	my $str = shift;
+	my $format = shift;
+	my $type = shift || "note";
+
+	if ($format eq 'html') {
+		$str =~ s/(\@\S+)/<span class=who>$1<\/span>/g;
+		$str =~ s/\[COMPLETE\]\s*(.+)/<span class=complete>$1<\/span>/;
+	} elsif ($format eq 'wiki') {
+		$str =~ s/(\@\S+)/!!(blue)$1!!/g;
+		$str =~ s/\[COMPLETE\]\s*(.+)/!!(green)**\\\/**!! $1/;
+		if ($type eq "item") {
+			$str = "====$str====";
+		}
+	}
+
+	return $str;
 }
 
 sub print_tree {

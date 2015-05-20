@@ -6,33 +6,57 @@ use strict;
 use File::Slurp; # libfile-slurp-perl
 use Data::Dumper;
 
-my $file_name = glob($ENV{HOME}."/Dropbox/*pps/WorkFlowy/WorkFlowy*.txt");
+my $file_name = shift || glob($ENV{HOME}."/Dropbox/*pps/WorkFlowy/WorkFlowy*.txt");
 
 
 my @lines = read_file($file_name);
 
 my $tree = parse_workflowy(\@lines);
+#print Dumper($tree);
 
-print Dumper($tree->{Work}->{TREE}->{AntiFraud}->{TREE}->{CRITICAL});
+#print Dumper($tree->{Work}->{TREE}->{AntiFraud}->{TREE}->{CRITICAL});
 
-print_tree($tree->{Work}->{TREE}->{AntiFraud}->{TREE}->{CRITICAL});
-print "-----\n";
-print dump_workflowy($tree->{Work}->{TREE}->{AntiFraud}->{TREE}->{CRITICAL});
+#print_tree($tree->{Work}->{TREE}->{AntiFraud}->{TREE}->{CRITICAL});
+#print "-----\n";
+#print dump_workflowy($tree->{Work}->{TREE}->{AntiFraud}->{TREE}->{CRITICAL});
+print dump_workflowy($tree, 'html');
+#print_tree($tree);
+
 
 sub dump_workflowy {
 	my $tree = shift;
+	my $format = shift || 'plain';
 	my $indent = shift || '';
 
 	my $result = '';
 	if($tree->{INFO}) {
+		$tree->{INFO} =~ s/(\@\S+)/<span class=who>$1<\/span>/g if $format eq 'html';
+		
+		$result .= "<span class=note>" if $format eq 'html';
 		$result .= "$indent  " . $tree->{INFO}."\n";
+		$result .= "</span>" if $format eq 'html';
 	};
 
-	return $result unless $tree->{TREE};
-	foreach my $key (keys %{$tree->{TREE}}) {
-		$result .= $indent . "    - $key\n";
-		$result .= dump_workflowy($tree->{TREE}->{$key}, "$indent    ");
+	my $elem_prefix = "- ";
+	my $elem_postfix = "";
+	if ($format eq 'html') {
+		$elem_prefix = "<li>";
+		$elem_postfix = "</li>";
 	}
+
+	return $result unless $tree->{TREE};
+	
+	$result .= "$indent<ol>\n" if $format eq 'html';
+	foreach my $key (keys %{$tree->{TREE}}) {
+		my $print_key = $key;
+		$print_key =~ s/(\@\S+)/<span class=who>$1<\/span>/g if $format eq 'html';
+		$result .= $indent . "    $elem_prefix$print_key\n";
+		$result .= "<br>" if $format eq 'html';
+		$result .= dump_workflowy($tree->{TREE}->{$key}, $format, "$indent    ");
+		$result .= "$indent    $elem_postfix\n";
+	}
+	$result .= "$indent</ol>\n" if $format eq 'html';
+
 
 	return $result;
 }
@@ -66,7 +90,7 @@ sub parse_workflowy {
 			my $key = $line;
 			$key = trim($line);
 
-			$result->{$key} = undef;
+			$result->{TREE}->{$key} = undef;
 			if ($i < scalar(@$lines) - 1) {
 				if ($lines->[$i + 1] =~ /^$indent\s*"/) {
 					# parse info
@@ -75,7 +99,7 @@ sub parse_workflowy {
 						my $line = $lines->[$i];
 						chomp $line;
 						$line =~ s/^\s+//;
-						$result->{$key}->{INFO} .= $line;
+						$result->{TREE}->{$key}->{INFO} .= $line.' ';
 						last if $line =~ /"$/;
 						$i++;
 					}
@@ -85,7 +109,7 @@ sub parse_workflowy {
 				# parse recursive if next line has bigger indent
 				my ($new_indent) = $lines->[$i+1] =~ /^(\s*)/;
 				if (length($new_indent) > length($indent)) {
-					$result->{$key}->{TREE} = parse_workflowy($lines, $i+1);
+					$result->{TREE}->{$key}->{TREE} = parse_workflowy($lines, $i+1);
 					$i++ while $i < scalar(@$lines) - 1 && $lines->[$i + 1] =~ /^$new_indent/;
 				}
 			}

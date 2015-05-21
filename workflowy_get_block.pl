@@ -7,7 +7,9 @@ use File::Slurp; # libfile-slurp-perl
 use Data::Dumper;
 
 my $file_name = shift || glob($ENV{HOME}."/Dropbox/*pps/WorkFlowy/WorkFlowy*.txt");
+my $format = shift || "wiki";
 
+print "FORMAT: $format, FILE: $file_name\n\n";
 
 my @lines = read_file($file_name);
 
@@ -19,7 +21,7 @@ my $tree = parse_workflowy(\@lines);
 #print_tree($tree->{Work}->{TREE}->{AntiFraud}->{TREE}->{CRITICAL});
 #print "-----\n";
 #print dump_workflowy($tree->{Work}->{TREE}->{AntiFraud}->{TREE}->{CRITICAL});
-print dump_workflowy($tree, 'wiki');
+print dump_workflowy($tree, $format);
 #print_tree($tree);
 
 

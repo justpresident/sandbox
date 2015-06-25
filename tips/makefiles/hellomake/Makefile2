@@ -1,0 +1,11 @@
+CC=gcc
+CFLAGS=-I.
+
+# Using this form of makefile is sufficient for most small scale projects.
+# However, there is one thing missing: dependency on the include files.
+# If you were to make a change to hellomake.h, for example, make would not recompile the .c files, even though they needed to be.
+# In order to fix this, we need to tell make that all .c files depend on certain .h files.
+# We can do this by writing a simple rule and adding it to the makefile.
+
+hellomake: hellomake.o hellofunc.o
+	$(CC) -o hellomake hellomake.o hellofunc.o -I.

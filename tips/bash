@@ -1,0 +1,33 @@
+## SHORTCUTS
+
+C-w				remove word 
+Alt-backspace	delete word in file path
+C-y				return command from buffer
+esc .			last argument of previous commmand (can be repeated)
+alt-b, alt-f	ack and forward by word
+C-g				cancel C-r search
+M-r				cancel all sting changes
+M-t				change two words
+C-t				change two characters
+
+C-d		delete
+C-h		Backspace
+C-m		Enter
+!!		repeat last command
+!!substr	repeat last command, starting with substr
+
+# COMMANDS
+stty -a	Shows all shortcuts
+rlwrap 	readline wrap
+
+read -p "What is your name"
+echo "Nice to meet you, $REPLY "
+read -p "Enter two numbers please" N1 N2
+echo "You entered $N1 and $N2 "
+
+[] - bashizm for test
+
+
+# COMPLETION
+help complete
+help compgen

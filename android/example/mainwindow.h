@@ -32,6 +32,7 @@ public slots:
     void refresh_data(const Store &store);
     void open_file();
     void save_file();
+    void save_file(const Store &store);
 
 private slots:
     void on_saveButton_clicked();

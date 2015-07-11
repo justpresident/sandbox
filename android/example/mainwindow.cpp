@@ -19,6 +19,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->listView->setModel(listModel);
 
     connect(&store, SIGNAL(changed(const Store &)), this, SLOT(refresh_data(const Store &)));
+    connect(&store, SIGNAL(changed(const Store &)), this, SLOT(save_file(const Store &)));
 
 }
 
@@ -79,13 +80,24 @@ void MainWindow::open_file() {
 }
 
 void MainWindow::save_file() {
-    cypher = mk_file_cypher(QFileDialog::AnyFile);
+    save_file(store);
+}
+
+void MainWindow::save_file(const Store &store) {
+    if (cypher == NULL)
+        cypher = mk_file_cypher(QFileDialog::AnyFile);
+
     if (cypher != NULL)
         cypher->write_data(store.get_data());
 }
 
 void MainWindow::refresh_data(const Store &store) {
     listModel->setStringList(store.get_keys().filter(ui->nameEdit->text()));
+    QString value = "";
+    if (listModel->stringList().contains(ui->nameEdit->text())) {
+        value = store.get(ui->nameEdit->text());
+    }
+    ui->valueEdit->document()->setPlainText(value);
 }
 
 void MainWindow::on_saveButton_clicked()

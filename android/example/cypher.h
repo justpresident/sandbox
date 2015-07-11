@@ -52,9 +52,22 @@ public:
         if (fi.exists() && fi.size() > 0) {
             QFile file(file_name);
             file.open(QIODevice::ReadOnly);
+            // read data from file to byteArray
+            QByteArray byteArray = file.readAll();
+            file.close();
 
-            //char buffer[32];
-            QDataStream in(&file);
+            //remove padding length
+            char pad_length = byteArray.at(0);
+            byteArray.remove(0, 1);
+
+            //decrypt data
+
+            //remove padding
+            byteArray.remove(byteArray.length()-pad_length, pad_length);
+
+            //deserialize data from byteArray
+            QDataStream in(byteArray);
+            in.setVersion(QDataStream::Qt_5_4);
             in >> data;
 
         }
@@ -62,11 +75,30 @@ public:
     }
 
     void write_data(const QMap<QString,QString> data) const {
+        QByteArray byteArray;
+        QDataStream out(&byteArray, QIODevice::ReadWrite);
+        out.setVersion(QDataStream::Qt_5_4);
+
+        // serialize data to byteArray
+        out << data;
+        out.setDevice(0);
+
+        // write padding
+        char pad_length = 16 - (byteArray.length() % 16);
+        for (qint8 i = 0; i < pad_length; ++i)
+            byteArray.append('~');
+
+        // encrypt byteArray
+
+
         QFile file(file_name);
         file.open(QIODevice::WriteOnly);
-        QDataStream out(&file);
+        // write padding length to file
+        file.write(&pad_length, 1);
 
-        out << data;
+        // write data from byteArray to file
+        file.write(byteArray);
+        file.close();
     }
 
     QString get_file_name() const {

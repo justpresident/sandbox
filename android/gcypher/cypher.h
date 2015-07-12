@@ -39,8 +39,7 @@ public:
     ~Cypher() {};
 
     void crypt_setup(const UINT8 *key, size_t key_len) {
-        struct cryptstate crypt_state;
-        crypt_state.mode = MODE_CBC;
+        crypt_state.ctx.mode = crypt_state.mode = MODE_CBC;
 
         memset(crypt_state.iv, 0, RIJNDAEL_BLOCKSIZE);
         rijndael_setup(&crypt_state.ctx, key_len, key);
@@ -60,13 +59,15 @@ public:
             char pad_length = byteArray.at(0);
             byteArray.remove(0, 1);
 
-            //decrypt data
+            //decrypt byteArray
+            QByteArray decryptedArray(byteArray.length(), 0);
+            block_decrypt(&crypt_state.ctx, (UINT8 *)byteArray.data(), byteArray.length(), (UINT8 *)decryptedArray.data(), crypt_state.iv);
 
             //remove padding
-            byteArray.remove(byteArray.length()-pad_length, pad_length);
+            decryptedArray.remove(decryptedArray.length()-pad_length, pad_length);
 
             //deserialize data from byteArray
-            QDataStream in(byteArray);
+            QDataStream in(decryptedArray);
             in.setVersion(QDataStream::Qt_5_4);
             in >> data;
 
@@ -74,7 +75,7 @@ public:
         return data;
     }
 
-    void write_data(const QMap<QString,QString> data) const {
+    void write_data(const QMap<QString,QString> data) {
         QByteArray byteArray;
         QDataStream out(&byteArray, QIODevice::ReadWrite);
         out.setVersion(QDataStream::Qt_5_4);
@@ -84,12 +85,15 @@ public:
         out.setDevice(0);
 
         // write padding
-        char pad_length = 16 - (byteArray.length() % 16);
+        char pad_length = RIJNDAEL_BLOCKSIZE - (byteArray.length() % RIJNDAEL_BLOCKSIZE);
+        if (pad_length == RIJNDAEL_BLOCKSIZE)
+            pad_length = 0;
         for (qint8 i = 0; i < pad_length; ++i)
             byteArray.append('~');
 
         // encrypt byteArray
-
+        QByteArray encryptedArray(byteArray.length(), 0);
+        block_encrypt(&crypt_state.ctx, (UINT8 *)byteArray.data(), byteArray.length(), (UINT8 *)encryptedArray.data(), crypt_state.iv);
 
         QFile file(file_name);
         file.open(QIODevice::WriteOnly);
@@ -97,7 +101,7 @@ public:
         file.write(&pad_length, 1);
 
         // write data from byteArray to file
-        file.write(byteArray);
+        file.write(encryptedArray);
         file.close();
     }
 

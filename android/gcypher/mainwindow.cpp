@@ -11,9 +11,11 @@ MainWindow::MainWindow(QWidget *parent) :
     createMenu();
     ui->verticalLayout->setMenuBar(menuBar);
 
-    ui->horizontalLayout->addWidget(ui->saveButton);
-    ui->horizontalLayout->addWidget(ui->deleteButton);
+    ui->horizontalBtnLayout->addWidget(ui->saveButton);
+    ui->horizontalBtnLayout->addWidget(ui->deleteButton);
 
+    ui->horizontalNameEditLayout->addWidget(ui->nameEdit);
+    ui->horizontalNameEditLayout->addWidget(ui->clearButton);
 
     listModel = new QStringListModel(this);
     ui->listView->setModel(listModel);
@@ -21,6 +23,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(&store, SIGNAL(changed(const Store &)), this, SLOT(refresh_data(const Store &)));
     connect(&store, SIGNAL(changed(const Store &)), this, SLOT(save_file(const Store &)));
 
+    statusBar()->showMessage("New file");
 }
 
 MainWindow::~MainWindow()
@@ -59,36 +62,62 @@ QString choose_file(QFileDialog::FileMode mode) {
 }
 
 QString input_password() {
-    return QInputDialog::getText(NULL,"Please input file password", "Password");
+    bool ok;
+    QString password = QInputDialog::getText(NULL,"Please input file password", "Password", QLineEdit::Password,"",&ok);
+    if (ok && password != "")
+        return password;
+    else
+        return "";
 }
 
 Cypher * mk_file_cypher(QFileDialog::FileMode mode) {
     QString data_file = choose_file(mode);
+    Cypher *cypher = NULL;
 
     if (data_file == "")
         return NULL;
 
     QString key = input_password();
-    Cypher *cypher = new Cypher(data_file, key);
+    if (key == "")
+        return NULL;
+
+    cypher = new Cypher(data_file, key);
+
     return cypher;
 }
 
 void MainWindow::open_file() {
     cypher = mk_file_cypher(QFileDialog::ExistingFile);
-    if (cypher != NULL)
-        store.set_data(cypher->read_data());
+    if (cypher != NULL) {
+        QMap<QString, QString> dmap = cypher->read_data();
+        if (dmap.empty()) {
+            statusBar()->showMessage("Error: wrong key or empty file");
+            cypher = NULL;
+            return;
+        }
+        store.set_data(dmap);
+        refresh_data(store);
+        set_file_name("Loaded");
+    }
 }
 
 void MainWindow::save_file() {
     save_file(store);
 }
 
+void MainWindow::set_file_name(const QString action) {
+    statusBar()->showMessage(action + " - " + cypher->get_file_name(), 1500);
+    setWindowTitle("Cypher - " + cypher->get_file_name());
+}
+
 void MainWindow::save_file(const Store &store) {
     if (cypher == NULL)
         cypher = mk_file_cypher(QFileDialog::AnyFile);
 
-    if (cypher != NULL)
+    if (cypher != NULL) {
         cypher->write_data(store.get_data());
+        set_file_name("Saved");
+    }
 }
 
 void MainWindow::refresh_data(const Store &store) {
@@ -123,4 +152,9 @@ void MainWindow::on_listView_clicked(const QModelIndex &index)
 void MainWindow::on_nameEdit_textChanged(const QString &arg1 __attribute__((unused)))
 {
     refresh_data(store);
+}
+
+void MainWindow::on_clearButton_clicked()
+{
+    ui->nameEdit->setText("");
 }

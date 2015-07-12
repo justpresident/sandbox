@@ -5,6 +5,7 @@
 #include <QMenuBar>
 #include <QFileDialog>
 #include <QInputDialog>
+#include <QStatusBar>
 
 #include <QStringList>
 #include <QStringListModel>
@@ -33,6 +34,7 @@ public slots:
     void open_file();
     void save_file();
     void save_file(const Store &store);
+    void set_file_name(const QString action);
 
 private slots:
     void on_saveButton_clicked();
@@ -42,6 +44,8 @@ private slots:
     void on_listView_clicked(const QModelIndex &index);
 
     void on_nameEdit_textChanged(const QString &arg1);
+
+    void on_clearButton_clicked();
 
 private:
     Ui::MainWindow *ui;

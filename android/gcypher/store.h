@@ -36,7 +36,7 @@ public slots:
     }
     void set_data(const QMap<QString,QString> dt) {
         data = dt;
-        emit changed(*this);
+        //emit changed(*this);
     }
 
 private:
